@@ -1,13 +1,30 @@
-import { Controller, Post, Body } from '@nestjs/common';
+// src/auth/auth.controller.ts
+import { Controller, Post, Body, UseGuards, Request , BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthDto } from './dto/auth.dto';
+import { LocalAuthGuard } from './local-auth.guard';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('token')
+  async generateToken(@Body() body: { email: string }) {
+    if (!body || !body.email) {
+      throw new BadRequestException('Email is required');
+    }
+    return this.authService.generateToken(body.email);
+  }
+
+  @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Body() authDto: AuthDto): Promise<any> {
-    return this.authService.login(authDto);
+  async login(@Request() req) {
+    return this.authService.login(req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('profile')
+  getProfile(@Request() req) {
+    return req.user;
   }
 }
